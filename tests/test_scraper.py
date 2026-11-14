@@ -1,6 +1,6 @@
 from bs4 import BeautifulSoup
 
-from malena.scraper import PAGE_SIZE, PhoneDbScraper, parse_device
+from scraper import PAGE_SIZE, PhoneDbScraper, parse_device
 
 DEVICE_PAGE = """
 <table>

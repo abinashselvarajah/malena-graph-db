@@ -1,4 +1,4 @@
-"""Write scraped phones into Neo4j and keep the graph tidy.
+"""Write scraped phones into Neo4j and merge identical components.
 
 Graph model
 -----------
@@ -86,8 +86,6 @@ class Graph:
     def init_schema(self):
         with self.driver.session() as session:
             session.run("CREATE CONSTRAINT product_name IF NOT EXISTS FOR (p:Product) REQUIRE p.name IS UNIQUE")
-            session.run("CREATE INDEX component_name IF NOT EXISTS FOR (c:Component) ON (c.name)")
-            session.run("CREATE INDEX property_name IF NOT EXISTS FOR (p:Property) ON (p.name)")
 
     def add_phone(self, data: dict) -> str | None:
         intro = data.get("Introduction", {})
@@ -108,12 +106,3 @@ class Graph:
         with self.driver.session() as session:
             session.run(FINGERPRINT)
             session.run(MERGE_DUPLICATES)
-
-    def stats(self) -> dict:
-        with self.driver.session() as session:
-            nodes = session.run("MATCH (n) UNWIND labels(n) AS label RETURN label, count(*) AS n ORDER BY n DESC")
-            rels = session.run("MATCH ()-[r]->() RETURN type(r) AS type, count(*) AS n ORDER BY n DESC")
-            return {
-                "nodes": {r["label"]: r["n"] for r in nodes},
-                "relationships": {r["type"]: r["n"] for r in rels},
-            }

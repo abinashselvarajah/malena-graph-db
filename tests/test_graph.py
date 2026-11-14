@@ -3,7 +3,7 @@ import os
 import pytest
 from neo4j import GraphDatabase
 
-from malena.graph import Graph, properties_of, split_value_unit
+from graph import Graph, properties_of, split_value_unit
 
 PHONE = {
     "Introduction": {"Model": "Test Phone X", "Device Category": "Smartphone"},
@@ -90,10 +90,3 @@ def test_merge_shares_identical_components_between_phones(graph):
     assert count(graph, "MATCH (c:Component {name: 'Display'}) RETURN count(c)") == 1
     assert count(graph, "MATCH (:Product)-[:HAS_COMPONENT]->(:Component {name: 'Display'}) RETURN count(*)") == 2
     assert count(graph, "MATCH (c:Component {name: 'Power Supply'}) RETURN count(c)") == 2  # different, stays separate
-
-
-def test_stats_counts_labels_and_relationships(graph):
-    graph.add_phone(PHONE)
-    stats = graph.stats()
-    assert stats["nodes"]["Product"] == 1
-    assert stats["relationships"]["HAS_COMPONENT"] == 2
