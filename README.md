@@ -28,23 +28,98 @@ phonedb.net ──► scraper.py ──► dict per phone ──► graph.py ─
 After `merge`, components with exactly the same properties are collapsed into one node that several
 products point to. That is what makes "which phones share this part?" a one-hop query.
 
-## Quick start
+## Setup
+
+### 1. Prerequisites
+
+- [Docker](https://docs.docker.com/get-docker/) with Docker Compose (runs Neo4j), or an existing Neo4j 5 server with the APOC plugin (see [Without Docker](#without-docker))
+- Python 3.10 or newer
+- Internet access to phonedb.net for the scraping step
+
+### 2. Get the code
 
 ```bash
-docker compose up -d                  # Neo4j 5.20 + APOC on localhost:7474 / 7687
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
+git clone https://github.com/<your-user>/malena-graph-db.git
+cd malena-graph-db
+```
 
-python main.py scrape --limit 50      # scrape 50 devices into Neo4j (about a minute)
+### 3. Start Neo4j
+
+```bash
+docker compose up -d
+```
+
+This starts Neo4j 5.20 Community with the APOC plugin. The first start downloads the image and can take a
+minute or two. It is ready when <http://localhost:7474> opens (log in with `neo4j` / `password`).
+Check the status with `docker compose logs -f neo4j` and look for `Started.`
+
+### 4. Install the Python dependencies
+
+```bash
+python -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+### 5. Configure the connection (optional)
+
+The defaults match `docker-compose.yml`, so you can skip this for a local setup. To connect to another
+server or use another password, copy `.env.example` to `.env`, edit it, and export the variables:
+
+```bash
+cp .env.example .env
+export $(grep -v '^#' .env | xargs)   # Windows PowerShell: set $env:NEO4J_PASSWORD = "..."
+```
+
+| Variable | Default |
+| --- | --- |
+| `NEO4J_URI` | `neo4j://localhost:7687` |
+| `NEO4J_USER` | `neo4j` |
+| `NEO4J_PASSWORD` | `password` |
+
+If you change the password, change `NEO4J_AUTH` in `docker-compose.yml` as well, **before** the first start
+(Neo4j only reads it when it creates the database volume). Change the default password before the database
+is reachable from any network.
+
+### 6. Build the graph
+
+```bash
+python main.py scrape --limit 50      # scrape 50 devices into Neo4j, about a minute
 python main.py merge                  # share identical components between phones
 python main.py stats                  # node and relationship counts
 ```
 
-Then open <http://localhost:7474> and try the queries in [`queries.cypher`](queries.cypher).
+`scrape` takes `--limit` (devices, default 25) and `--delay` (seconds between requests, default 1.0).
+You can run it again with a larger limit; phones that are already in the graph are updated rather than
+duplicated. Run `merge` once after scraping is finished.
 
-The Neo4j login is the local default (`neo4j` / `password`, set in `docker-compose.yml`). To use another
-server or password, set `NEO4J_URI`, `NEO4J_USER` and `NEO4J_PASSWORD` (see `.env.example`).
-Change the password before exposing the database to any network.
+### 7. Explore it
+
+Open <http://localhost:7474> and paste the queries from [`queries.cypher`](queries.cypher) one by one. The
+second query draws one phone with its components and properties as a graph.
+
+### Stop and reset
+
+```bash
+docker compose down       # stop Neo4j, keep the data
+docker compose down -v    # stop and delete the database (start from scratch)
+```
+
+### Without Docker
+
+Install Neo4j 5 (Community or Desktop) and the [APOC core plugin](https://neo4j.com/docs/apoc/current/installation/),
+start the database, and set `NEO4J_URI`, `NEO4J_USER` and `NEO4J_PASSWORD` to match. Then continue with step 4.
+APOC is only needed for `python main.py merge`.
+
+### Troubleshooting
+
+| Problem | Fix |
+| --- | --- |
+| `Unable to retrieve routing information` / connection refused | Neo4j is still starting. Wait for `Started.` in `docker compose logs neo4j`. |
+| `Neo.ClientError.Security.Unauthorized` | The password does not match. Check `NEO4J_PASSWORD` and `NEO4J_AUTH`, or reset with `docker compose down -v`. |
+| `no procedure ... apoc` during `merge` | APOC is not installed. Use the provided `docker-compose.yml` or install the plugin. |
+| `CERTIFICATE_VERIFY_FAILED` while scraping | See [Scraping etiquette](#scraping-etiquette): the OS trust store lacks the intermediate certificate. |
+| Many `skipped ...` lines | phonedb.net rate-limits or a page changed. Increase `--delay`. |
 
 ## Layout
 
