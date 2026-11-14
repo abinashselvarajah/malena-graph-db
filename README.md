@@ -39,7 +39,7 @@ products point to. That is what makes "which phones share this part?" a one-hop 
 ### 2. Get the code
 
 ```bash
-git clone https://github.com/<your-user>/malena-graph-db.git
+git clone https://github.com/abinashselvarajah/malena-graph-db.git
 cd malena-graph-db
 ```
 
