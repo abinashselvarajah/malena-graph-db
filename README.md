@@ -121,6 +121,17 @@ APOC is only needed for `python main.py merge`.
 | `CERTIFICATE_VERIFY_FAILED` while scraping | See [Scraping etiquette](#scraping-etiquette): the OS trust store lacks the intermediate certificate. |
 | Many `skipped ...` lines | phonedb.net rate-limits or a page changed. Increase `--delay`. |
 
+## Tests
+
+```bash
+pip install -r requirements-dev.txt
+pytest
+```
+
+The scraper and parsing tests run offline. The graph tests need a running Neo4j with APOC (step 3) and
+are skipped otherwise. They **wipe the database**, so they only run against an empty one; set
+`MALENA_TEST_WIPE=1` to allow wiping a database that already holds data.
+
 ## Layout
 
 | File | Purpose |
@@ -128,6 +139,7 @@ APOC is only needed for `python main.py merge`.
 | `malena/scraper.py` | polite phonedb.net scraper and datasheet parser |
 | `malena/graph.py` | writes phones into Neo4j, merges duplicate components, statistics |
 | `main.py` | command line: `scrape`, `merge`, `stats` |
+| `tests/` | pytest tests |
 | `queries.cypher` | example queries |
 | `docker-compose.yml` | local Neo4j with APOC |
 
